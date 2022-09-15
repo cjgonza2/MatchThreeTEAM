@@ -1,10 +1,19 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
+using Unity.VisualScripting;
 
 public class MatchManagerScript : MonoBehaviour {
 
 	protected GameManagerScript gameManager; //reference to gamemanager
 
+	//public List<Vector2[]> DualMatchList = new List<Vector2[]>();
+	//private List<Vector2> dualMatchList = new List<Vector2>();
+	//private new Vector2[] xTokens;
+	//private new Vector2[] yTokens;
+	
+	public List<Vector2Int> dualMatchList = new List<Vector2Int>();
+ 
 	public virtual void Start () { 
 		gameManager = GetComponent<GameManagerScript>(); //sets gamemanager script reference. 
 	}
@@ -12,8 +21,10 @@ public class MatchManagerScript : MonoBehaviour {
 	
 	//Known Bugs:
 	//1. NO Vertical Matches
+	//2. move objects Diagonal
+	//3. two matches sharing a token. 
 
-	
+
 	//reminder for virtual:
 	//similar to how public is modify access,
 	//virtual is saying that we can override it. 
@@ -33,6 +44,7 @@ public class MatchManagerScript : MonoBehaviour {
 				  //match check needs to be performed through tthe first element of the grid row (left ot right)
 					match = match || GridHasVerticalMatch(x, y); //checks if match is true or false based on hasMATCH function. 
 				}
+				
 				//----------------------------------------
 			}
 		}
@@ -46,14 +58,24 @@ public class MatchManagerScript : MonoBehaviour {
 		GameObject token2 = gameManager.gridArray[x + 1, y];
 		GameObject token3 = gameManager.gridArray[x + 2, y];
 		
+		
+		//GetHorizontalVectors(token1, token2, token3);
+		
+
+		//new Vector2 = GetComponent<Vector2>(token1);
+		//dualMatchList.Add(token1);
+		
+		
 		if(token1 != null && token2 != null && token3 != null){ //if none of the tokens are null
 			//this is just saves the objects spriteRender component. 
 			SpriteRenderer sr1 = token1.GetComponent<SpriteRenderer>();
 			SpriteRenderer sr2 = token2.GetComponent<SpriteRenderer>();
 			SpriteRenderer sr3 = token3.GetComponent<SpriteRenderer>();
-			
+
 			//checks if token sprites are the same, returns true if so.
 			return (sr1.sprite == sr2.sprite && sr2.sprite == sr3.sprite);
+
+
 		} else { //otherwise returns false. 
 			return false;
 		}
@@ -66,6 +88,8 @@ public class MatchManagerScript : MonoBehaviour {
 		GameObject token1 = gameManager.gridArray[x, y+0];
 		GameObject token2 = gameManager.gridArray[x, y+1];
 		GameObject token3 = gameManager.gridArray[x, y+2];
+
+		//GetVerticalVectors(token1, token2, token3);
 
 		if (token1 != null && token2 != null && token3 != null)
 		{ //if none of the tokens are null
@@ -81,6 +105,17 @@ public class MatchManagerScript : MonoBehaviour {
 		{ //otherwise returns false. 
 			return false;
 		}
+	}
+	public bool SharedTokenCheck()
+	{
+		/*if (DualMatchList.horizontalMatch[0] != null)
+		{
+			return true;
+		}
+		else
+		{
+		}*/
+		return this;
 	}
 
 	//-------------------------
@@ -156,13 +191,12 @@ public class MatchManagerScript : MonoBehaviour {
 	public virtual int RemoveMatches(){ //funciton to removed matched objects. 
 		int numRemoved = 0; //declars integer value and sets to zero. 
 
-		for(int x = 0; x < gameManager.gridWidth; x++){ //for each position in grid width;
-			for(int y = 0; y < gameManager.gridHeight ; y++){ //and each position in grid height, 
+		for(int x = 0; x < gameManager.gridWidth; x++){ //for each column of grid;
+			for(int y = 0; y < gameManager.gridHeight ; y++){ //and each row in grid, 
 				if(x < gameManager.gridWidth - 2 )
 				{ 
 				//Checks if this x is one of the last elements in the row, since the
 				//match check needs to be performed through tthe first element of the grid row (left ot right)
-
 					int horizonMatchLength = GetHorizontalMatchLength(x, y); //checks length of horizontal match and saves it as local integer. 
 					
 
@@ -172,12 +206,14 @@ public class MatchManagerScript : MonoBehaviour {
 						for(int i = x; i < x + horizonMatchLength; i++){ //for each token in the match, 
 
 									GameObject token = gameManager.gridArray[i, y];  //saves object as a token gameObject. 
-									Destroy(token); //and DESTROYS it. 
-									gameManager.gridArray[i, y] = null; //sets the token's position as null
+									//Destroy(token); //and DESTROYS it. 
+									dualMatchList.Add(new Vector2Int(i, y)); //Adds each token in the match to a vector 2 int list, based on each token's x position in the grid. 
+									//gameManager.gridArray[i, y] = null; //sets the token's position as null
 									numRemoved++; //adds the amount of tokens removed from grid. 
 								
 						}
 					}
+
 				}
 				//------------------------
 
@@ -187,7 +223,7 @@ public class MatchManagerScript : MonoBehaviour {
 					//Checks if this x is one of the last elements in the row, since the
 					//match check needs to be performed through tthe first element of the grid row (left ot right)
 
-					int verticalMatchLength = GetVerticalMatchLength(x, y); //checks length of horizontal match and saves it as local integer. 
+					int verticalMatchLength = GetVerticalMatchLength(x, y); //checks length of vertical match and saves it as local integer. 
 
 					if (verticalMatchLength > 2)
 					{ //if the match length is greater than 2,
@@ -195,9 +231,8 @@ public class MatchManagerScript : MonoBehaviour {
 						for (int i = y; i < y + verticalMatchLength; i++)
 						{ //for each token in the match, 
 							GameObject token = gameManager.gridArray[x, i];  //saves object as a token gameObject. 
-							Destroy(token); //and DESTROYS it. 
-
-							gameManager.gridArray[x, i] = null; //sets the token's position as null
+							dualMatchList.Add(new Vector2Int(x,i)); //adds each token in a vertical match into the list based on y position in grid. 
+							//gameManager.gridArray[x, i] = null; //sets the token's position as null
 							numRemoved++; //adds the amount of tokens removed from grid. 
 						}
 					}
@@ -208,7 +243,14 @@ public class MatchManagerScript : MonoBehaviour {
 
 			}
 		}
-		
+
+		//for each object in the list;
+		for (int i = 0; i < dualMatchList.Count; i++)
+		{
+			Destroy(gameManager.gridArray[dualMatchList[i].x, dualMatchList[i].y]); //destroy each object based on it's position in the grid. 
+			gameManager.gridArray[dualMatchList[i].x, dualMatchList[i].y] = null;	//sets the grid position to null so that it can be repopulated. 
+		}
+		dualMatchList.Clear(); //clears the list. 
 		return numRemoved;//returns how many tokens were removed. 
 	}
 }
